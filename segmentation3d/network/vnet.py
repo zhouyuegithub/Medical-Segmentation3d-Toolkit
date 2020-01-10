@@ -83,7 +83,7 @@ class SegmentationNet(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super(SegmentationNet, self).__init__()
-        self.in_block = InputBlock(in_channels, 16)
+        self.in_block = InputBlock(in_channels, 16)#1,16
         self.down_32 = DownBlock(16, 1)
         self.down_64 = DownBlock(32, 2)
         self.down_128 = DownBlock(64, 3)

@@ -31,7 +31,7 @@ def get_image_frame(image):
     assert isinstance(image, sitk.Image)
 
     frame = []
-    frame.extend(list(image.GetSpacing()))
+    frame.extend(list((image.GetSpacing()[0],image.GetSpacing()[1],0.5)))
     frame.extend(list(image.GetOrigin()))
     frame.extend(list(image.GetDirection()))
 
@@ -111,9 +111,8 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     """
     assert isinstance(image, sitk.Image)
 
-    spacing = image.GetSpacing()
+    spacing = [image.GetSpacing()[0],image.GetSpacing()[1],0.5]
     direction = image.GetDirection()
-
     cropping_center = [int(cropping_center[idx]) for idx in range(3)]
     cropping_size = [int(cropping_size[idx]) for idx in range(3)]
     cropping_spacing = [float(cropping_spacing[idx]) for idx in range(3)]
@@ -144,14 +143,13 @@ def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label)
     """ Randomly select a list of voxels with the given label in the mask
 
     :param mask: A multi-class label image
-    :param num_selected: The number of voxels to be selected
+    :param num_selected: The number of voxels to be selected is 1
     :param selected_label: The label to which the selected voxels belong
     """
     assert isinstance(mask, sitk.Image)
 
     mask_npy = sitk.GetArrayFromImage(mask)
-    valid_voxels = np.argwhere(mask_npy == selected_label)
-
+    valid_voxels = np.argwhere(mask_npy == selected_label)#this is label == 1
     selected_voxels = []
     while len(valid_voxels) > 0 and len(selected_voxels) < num_selected:
         selected_index = np.random.randint(0, len(valid_voxels))

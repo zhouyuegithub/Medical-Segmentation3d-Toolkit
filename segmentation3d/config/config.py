@@ -12,11 +12,11 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
-
+#__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
+__C.general.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
-
+#__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/single_task/'
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
@@ -34,14 +34,14 @@ __C.general.seed = 0
 __C.dataset = {}
 
 # the number of classes
-__C.dataset.num_classes = 3
+__C.dataset.num_classes = 2#3
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [0.4, 0.4, 0.4]
+__C.dataset.spacing = [0.5, 0.5, 0.5]#[0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [128, 128, 128]
-
+#__C.dataset.crop_size = [128, 128, 128]
+__C.dataset.crop_size = [256,64,256]#[128,64,128]
 # the default padding value list
 __C.dataset.default_values = [0]
 
@@ -79,7 +79,7 @@ __C.loss.name = 'Dice'
 
 # the weight for each class including background class
 # weights will be normalized
-__C.loss.obj_weight = [1/3, 1/3, 1/3]
+__C.loss.obj_weight = [1/2,1/2] #[1/3, 1/3, 1/3]
 
 # the gamma parameter in focal loss
 __C.loss.focal_gamma = 2
@@ -102,10 +102,10 @@ __C.net.name = 'vnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 101
+__C.train.epochs = 10001#101
 
 # the number of samples in a batch
-__C.train.batchsize = 6
+__C.train.batchsize = 4
 
 # the number of threads for IO
 __C.train.num_threads = 6
