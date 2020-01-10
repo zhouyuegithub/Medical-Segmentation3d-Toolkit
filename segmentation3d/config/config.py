@@ -16,7 +16,7 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # the output of training models and logs
 #__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
-__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/single_task/'
+__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/hybridresize/'
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
@@ -41,7 +41,7 @@ __C.dataset.spacing = [0.5, 0.5, 0.5]#[0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
 #__C.dataset.crop_size = [128, 128, 128]
-__C.dataset.crop_size = [256,64,256]#[128,64,128]
+__C.dataset.crop_size = [128,32,128]
 # the default padding value list
 __C.dataset.default_values = [0]
 
@@ -105,7 +105,7 @@ __C.train = {}
 __C.train.epochs = 10001#101
 
 # the number of samples in a batch
-__C.train.batchsize = 4
+__C.train.batchsize = 6
 
 # the number of threads for IO
 __C.train.num_threads = 6

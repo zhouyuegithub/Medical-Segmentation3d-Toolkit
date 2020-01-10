@@ -150,7 +150,7 @@ class SegmentationDataset(Dataset):
             images[idx] = crop_image(images[idx], center, self.crop_size, self.spacing, self.interpolation)
 
             if self.crop_normalizers[idx] is not None:
-                self.crop_normalizers[idx](images[idx])
+                self.crop_nomalizers[idx](images[idx])
 
         seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
 
