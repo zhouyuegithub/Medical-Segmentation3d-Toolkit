@@ -162,3 +162,33 @@ class SegmentationDataset(Dataset):
         seg = convert_image_to_tensor(seg)
 
         return im, seg, frame, case_name
+class SegmentationTestDataset(Dataset):
+    def __init__(self,listpth):
+        if listpth.endswith('txt'):
+            self.im_list, self.seg_list = read_train_txt(listpth)
+        else:
+            raise ValueError('imseg_list must be a txt file')
+    
+    def __len__(self):
+        return len(self.im_list)
+    
+    def __getitem__(self,index):
+
+        image_path, seg_path = self.im_list[index], self.seg_list[index]
+        case_name = os.path.basename(os.path.dirname(image_path[0]))
+        case_name += '_' + os.path.basename(image_path[0])
+        case_name_ = case_name[6:-4]
+        # image IO
+        #images = []
+        #for image_path in image_paths:
+        #    image = sitk.ReadImage(image_path)
+        #    images.append(image)
+        im = sitk.ReadImage(image_path[0])
+        seg = sitk.ReadImage(seg_path)
+        frame = get_image_frame(seg)
+        image = sitk.GetArrayFromImage(im)
+        seg = sitk.GetArrayFromImage(seg)
+        return image, seg, frame, case_name_
+    def num_modality(self):
+        """ get the number of input image modalities """
+        return len(self.im_list[0])

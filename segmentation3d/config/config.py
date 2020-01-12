@@ -16,7 +16,7 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # the output of training models and logs
 #__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
-__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/hybridresize/'
+__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize_rightshow/'
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
@@ -49,7 +49,7 @@ __C.dataset.default_values = [0]
 # 1) GLOBAL: sampling crops randomly in the entire image domain
 # 2) MASK: sampling crops randomly within segmentation mask
 # 3) HYBRID: Sampling crops randomly with both GLOBAL and MASK methods
-__C.dataset.sampling_method = 'HYBRID'
+__C.dataset.sampling_method = 'GLOBAL'
 
 # translation augmentation (unit: mm)
 __C.dataset.random_translation = [5, 5, 5]
@@ -102,7 +102,7 @@ __C.net.name = 'vnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 10001#101
+__C.train.epochs = 1500#101
 
 # the number of samples in a batch
 __C.train.batchsize = 6
@@ -120,6 +120,25 @@ __C.train.betas = (0.9, 0.999)
 __C.train.save_epochs = 100
 
 
+##################################
+# testing parameters
+##################################
+
+__C.test = {}
+
+# the number of training epochs
+__C.test.test_epoch = 1000#101
+
+# the number of samples in a batch
+__C.test.batch_size = 1
+
+# the number of threads for IO
+__C.test.num_threads = 0
+
+# base dir for test
+__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
+# save test result
+__C.test.save = True
 ###################################
 # debug parameters
 ###################################

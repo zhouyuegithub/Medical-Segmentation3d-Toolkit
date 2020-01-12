@@ -2,7 +2,11 @@ import os
 import torch
 import shutil
 
-
+def load_testmodel(epoch_idx,net,save_dir):
+    chk_file = os.path.join(save_dir,'checkpoints', 'chk_{}'.format(epoch_idx),'params.pth')
+    assert os.path.isfile(chk_file), 'checkpoint file not found: {}'.format(chk_file)
+    state = torch.load(chk_file)
+    return state
 def load_checkpoint(epoch_idx, net, opt, save_dir):
     """ load network parameters from directory
 
