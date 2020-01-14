@@ -16,7 +16,7 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # the output of training models and logs
 #__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
-__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize_rightshow/'
+__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/'
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
@@ -41,7 +41,7 @@ __C.dataset.spacing = [0.5, 0.5, 0.5]#[0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
 #__C.dataset.crop_size = [128, 128, 128]
-__C.dataset.crop_size = [128,32,128]
+__C.dataset.crop_size = [256,64,256]#[128,32,128]
 # the default padding value list
 __C.dataset.default_values = [0]
 
@@ -49,10 +49,10 @@ __C.dataset.default_values = [0]
 # 1) GLOBAL: sampling crops randomly in the entire image domain
 # 2) MASK: sampling crops randomly within segmentation mask
 # 3) HYBRID: Sampling crops randomly with both GLOBAL and MASK methods
-__C.dataset.sampling_method = 'GLOBAL'
+__C.dataset.sampling_method = 'MASK'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [5, 5, 5]
+__C.dataset.random_translation = [0, 0, 0]#[5,5,5]for train
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -127,7 +127,7 @@ __C.train.save_epochs = 100
 __C.test = {}
 
 # the number of training epochs
-__C.test.test_epoch = 1000#101
+__C.test.test_epoch = 6100#6300(gl)#7200(hy)
 
 # the number of samples in a batch
 __C.test.batch_size = 1
@@ -136,9 +136,11 @@ __C.test.batch_size = 1
 __C.test.num_threads = 0
 
 # base dir for test
-__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
+__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/test_resize.txt'
 # save test result
 __C.test.save = True
+# save file name
+__C.test.save_filename = 'testresult_bigimage_bigth'
 ###################################
 # debug parameters
 ###################################

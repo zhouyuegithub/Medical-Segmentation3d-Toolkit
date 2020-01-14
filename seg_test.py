@@ -23,7 +23,7 @@ from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.utils.model_io import load_testmodel, save_checkpoint
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 patch_size = (128,32,128)
-stridex,stridey,stridez = 10,5,10#5,5,5
+stridex,stridey,stridez = 50,10,50#5,5,5
 def calculate_metric_percase(pred,gt):
     dice = metric.binary.dc(pred,gt)
     jc = metric.binary.jc(pred,gt)
@@ -46,7 +46,7 @@ def test_single_case(net,image,label,stridex,stridey,stridez,patch_size,num_clas
         for y in range(0,sy):
             ys = min(stridey*y,hh-patch_size[1])
             for z in range(0,sz):
-                print('testing patch_idx',patch_idx)
+                #print('testing patch_idx',patch_idx)
                 zs = min(stridez*z, dd -patch_size[2])
                 test_patch = image[xs:xs+patch_size[0],ys:ys+patch_size[1],zs:zs+patch_size[2]]
                 test_patch = np.expand_dims(np.expand_dims(test_patch,axis=0),axis=0).astype(np.float32)
@@ -59,9 +59,9 @@ def test_single_case(net,image,label,stridex,stridey,stridez,patch_size,num_clas
                 patch_idx += 1
     cnt_exp = np.expand_dims(cnt,axis=0)
     score_map = score_map/cnt_exp
-    print('score_map',score_map.shape)
+    #print('score_map',score_map.shape)
     label_map = score_map[1]
-    label_map[label_map>0.2] = 1
+    label_map[label_map>0.8] = 1
     label_map[label_map!=1] = 0
     return label_map,score_map
 
@@ -77,7 +77,7 @@ def test(config_file):
     metric_dict['dice'] = []
     metric_dict['jaccard'] = []
     cfg = load_config(config_file)
-    print('cfg',cfg)
+    #print('cfg',cfg)
     
     log_file = os.path.join(cfg.general.save_dir,'test_log.txt')
     logger = setup_logger(log_file,'seg3d_test')
@@ -87,8 +87,8 @@ def test(config_file):
     if cfg.general.num_gpus > 0:
         torch.cuda.manual_seed(cfg.general.seed)
     
-    dataset = SegmentationTestDataset(cfg.test.imseg_list)
-    #dataset = SegmentationDataset(
+    #dataset = SegmentationTestDataset(cfg.test.imseg_list)
+    dataset = SegmentationDataset(
             imlist_file=cfg.test.imseg_list,
             num_classes=cfg.dataset.num_classes,
             spacing=cfg.dataset.spacing,
@@ -100,7 +100,7 @@ def test(config_file):
             crop_normalizers=cfg.dataset.crop_normalizers
             )
     testloader = DataLoader(dataset,batch_size=cfg.test.batch_size, shuffle=False, num_workers=cfg.test.num_threads,pin_memory=True)
-
+    print('dataset length',len(testloader))
     net_model = importlib.import_module('segmentation3d.network.'+cfg.net.name)
     net = net_model.SegmentationNet(dataset.num_modality(),cfg.dataset.num_classes)
     net = nn.parallel.DataParallel(net,device_ids=list(range(cfg.general.num_gpus)))
@@ -112,8 +112,11 @@ def test(config_file):
     net.load_state_dict(state['state_dict'])
     net.eval()
     for ii, (image,label,fram,name) in enumerate(testloader):
-        
-        prediction,score_map = test_single_case(net,image[0],label[0],stridex,stridey,stridez,patch_size,num_classes=cfg.dataset.num_classes)
+        name = name[0][6:-4] 
+        print('testing patient',name)
+        #print('image',image.shape)
+        #print('label',label.shape)
+        prediction,score_map = test_single_case(net,image[0][0],label[0][0],stridex,stridey,stridez,patch_size,num_classes=cfg.dataset.num_classes)
         image = image[0].numpy()
         label = label[0].numpy()
 
@@ -127,7 +130,7 @@ def test(config_file):
         metric_dict['jaccard'].append(single_metric[1])
         total_metric += np.asarray(single_metric)
         if cfg.test.save == True:
-            test_save_path_temp = os.path.join(cfg.general.save_dir+'testreuslt/',name[0])
+            test_save_path_temp = os.path.join(cfg.general.save_dir+cfg.test.save_filename+'/',name)
             if not os.path.exists(test_save_path_temp):
                 os.makedirs(test_save_path_temp)
             nib.save(nib.Nifti1Image(prediction.astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'pred.nii.gz')
@@ -135,8 +138,11 @@ def test(config_file):
             nib.save(nib.Nifti1Image(label[:].astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'gt.nii.gz')
     avg_metric = total_metric / len(testloader)
     metric_csv = pd.DataFrame(metric_dict)
-    metric_csv.to_csv(cfg.general.save_dir+'/test_metric.csv',index=False)
+    metric_csv.to_csv(cfg.general.save_dir+cfg.test.save_filename+'/metric.csv',index=False)
     print('average metric is {}'.format(avg_metric))
+    f = open(cfg.general.save_dir+cfg.test.save_filename+'/metric.csv','a+')
+    f.write('%s,%.4f,%.4f\n'%('average',avg_metric[0],avg_metric[1]))
+    f.close()
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '4,3'
 
