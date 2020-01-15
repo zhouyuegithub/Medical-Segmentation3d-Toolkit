@@ -23,7 +23,7 @@ from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.utils.model_io import load_testmodel, save_checkpoint
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 patch_size = (128,32,128)
-stridex,stridey,stridez = 50,10,50#5,5,5
+stridex,stridey,stridez = 128,5,128#5,5,5
 def calculate_metric_percase(pred,gt):
     dice = metric.binary.dc(pred,gt)
     jc = metric.binary.jc(pred,gt)
@@ -58,10 +58,15 @@ def test_single_case(net,image,label,stridex,stridey,stridez,patch_size,num_clas
                 cnt[xs:xs+patch_size[0],ys:ys+patch_size[1],zs:zs+patch_size[2]] = cnt[xs:xs+patch_size[0],ys:ys+patch_size[1],zs:zs+patch_size[2]] + 1
                 patch_idx += 1
     cnt_exp = np.expand_dims(cnt,axis=0)
+    print('score_map',score_map.max())
     score_map = score_map/cnt_exp
-    #print('score_map',score_map.shape)
+    print('score_map',score_map.max())
     label_map = score_map[1]
-    label_map[label_map>0.8] = 1
+    th = score_map[1].mean()
+    th = 0.3
+    print('th',th)
+    
+    label_map[label_map>th] = 1
     label_map[label_map!=1] = 0
     return label_map,score_map
 
@@ -79,8 +84,8 @@ def test(config_file):
     cfg = load_config(config_file)
     #print('cfg',cfg)
     
-    log_file = os.path.join(cfg.general.save_dir,'test_log.txt')
-    logger = setup_logger(log_file,'seg3d_test')
+    #log_file = os.path.join(cfg.general.save_dir,'test_log.txt')
+    #logger = setup_logger(log_file,'seg3d_test')
 
     np.random.seed(cfg.general.seed)
     torch.manual_seed(cfg.general.seed)
@@ -114,16 +119,17 @@ def test(config_file):
     for ii, (image,label,fram,name) in enumerate(testloader):
         name = name[0][6:-4] 
         print('testing patient',name)
-        #print('image',image.shape)
+        print('image',image.shape)
         #print('label',label.shape)
         prediction,score_map = test_single_case(net,image[0][0],label[0][0],stridex,stridey,stridez,patch_size,num_classes=cfg.dataset.num_classes)
-        image = image[0].numpy()
-        label = label[0].numpy()
-
+        image = image[0][0].numpy()
+        label = label[0][0].numpy()
+        print('prediction',prediction.shape)
+        print('label',label.shape)
         if np.sum(prediction) == 0:
             single_metric = (0,0)
         else:
-            single_metric = calculate_metric_percase(prediction,label[:])
+            single_metric = calculate_metric_percase(prediction,label)
         print('single_metric',single_metric)
         metric_dict['name'].append(name)
         metric_dict['dice'].append(single_metric[0])
@@ -134,8 +140,8 @@ def test(config_file):
             if not os.path.exists(test_save_path_temp):
                 os.makedirs(test_save_path_temp)
             nib.save(nib.Nifti1Image(prediction.astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'pred.nii.gz')
-            nib.save(nib.Nifti1Image(image[:].astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'img.nii.gz')
-            nib.save(nib.Nifti1Image(label[:].astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'gt.nii.gz')
+            nib.save(nib.Nifti1Image(image.astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'img.nii.gz')
+            nib.save(nib.Nifti1Image(label.astype(np.float32),np.eye(4)),test_save_path_temp+'/'+'gt.nii.gz')
     avg_metric = total_metric / len(testloader)
     metric_csv = pd.DataFrame(metric_dict)
     metric_csv.to_csv(cfg.general.save_dir+cfg.test.save_filename+'/metric.csv',index=False)
@@ -150,7 +156,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=long_description)
 
-    parser.add_argument('-i',default='./segmentation3d/config/config_train.py',
+    parser.add_argument('-i',default='./segmentation3d/config/config.py',
                         help='configure file for medical image setmentation testing')
 
     args = parser.parse_args()

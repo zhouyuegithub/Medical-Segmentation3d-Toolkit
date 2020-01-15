@@ -40,8 +40,9 @@ __C.dataset.num_classes = 2#3
 __C.dataset.spacing = [0.5, 0.5, 0.5]#[0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
-#__C.dataset.crop_size = [128, 128, 128]
-__C.dataset.crop_size = [256,64,256]#[128,32,128]
+__C.dataset.crop_size = [318,80,290]
+#__C.dataset.crop_size = [256,80,256]#[128, 32, 128]
+#__C.dataset.crop_size = [256,64,256]#[128,32,128]
 # the default padding value list
 __C.dataset.default_values = [0]
 
@@ -127,7 +128,7 @@ __C.train.save_epochs = 100
 __C.test = {}
 
 # the number of training epochs
-__C.test.test_epoch = 6100#6300(gl)#7200(hy)
+__C.test.test_epoch = 6100#6100#6300(gl)#7200(hy)
 
 # the number of samples in a batch
 __C.test.batch_size = 1
@@ -140,7 +141,7 @@ __C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/test_resize.tx
 # save test result
 __C.test.save = True
 # save file name
-__C.test.save_filename = 'testresult_bigimage_bigth'
+__C.test.save_filename = 'testresult_orisize_maskcrop_th0.3'
 ###################################
 # debug parameters
 ###################################
