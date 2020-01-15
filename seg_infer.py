@@ -10,7 +10,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 from segmentation3d.utils.file_io import load_config
-from segmentation3d.utils.model_io import get_checkpoint_folder
+from segmentation3d.utils.model_io import get_checkpoint_folder,load_testmodel
 from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, \
   convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size
 
