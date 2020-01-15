@@ -20,7 +20,7 @@ from segmentation3d.dataloader.image_tools import save_intermediate_results
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 from segmentation3d.loss.focal_loss import FocalLoss
-
+'''new idea'''
 
 def train(config_file):
     """ Medical image segmentation training engine
