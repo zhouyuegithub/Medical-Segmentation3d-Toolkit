@@ -7,6 +7,9 @@ from segmentation3d.network.module.init import kaiming_weight_init
 def parameters_kaiming_init(net):
     """ model parameters initialization """
     net.apply(kaiming_weight_init)
+#class ClassBlock(nn.Module):
+#    '''class'''
+#    def __init__(self, in_channels,out_channels,kernel_size=2,stride=2,groups=1):
 
 
 class DownBlock(nn.Module):
@@ -93,7 +96,7 @@ class SegmentationNet(nn.Module):
         self.up_64 = UpBlock(128, 64, 2)
         self.up_32 = UpBlock(64, 32, 1)
         self.out_block = OutputBlock(32, out_channels)
-
+        #self.class_block = ClassBlock(256,2)
     def forward(self, input):
         out16 = self.in_block(input)
         out32 = self.down_32(out16)

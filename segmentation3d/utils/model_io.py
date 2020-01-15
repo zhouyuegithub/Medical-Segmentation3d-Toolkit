@@ -1,12 +1,28 @@
 import os
 import torch
 import shutil
+import glob
 
+def get_checkpoint_folder(chk_root, epoch):
+    '''epoch = -1 for the latest epoch only for the latest epoch now'''
+    assert os.path.isdir(chk_root), 'The folder does not exist: {}'.format(chk_root)
+    if epoch < 0:
+        latest_epoch = -1
+        chk_folders = os.path.join(chk_root,'chk_*')
+        for folder in glob.glob(chk_folders):
+            folder_name = os.path.basename(folder)
+            tokens = folder_name.split('_')
+            cur_epoch = int(tokens[-1])
+            if cur_epoch > latest_epoch:
+                latest_epoch = cur_epoch
+        epoch = latest_epoch
+    return os.path.join(chk_root,'chk_{}'.format(epoch))
 def load_testmodel(epoch_idx,net,save_dir):
     chk_file = os.path.join(save_dir,'checkpoints', 'chk_{}'.format(epoch_idx),'params.pth')
     assert os.path.isfile(chk_file), 'checkpoint file not found: {}'.format(chk_file)
     state = torch.load(chk_file)
     return state
+
 def load_checkpoint(epoch_idx, net, opt, save_dir):
     """ load network parameters from directory
 

@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=long_description)
 
-    parser.add_argument('-i',default='./segmentation3d/config/config.py',
+    parser.add_argument('-i',default='./segmentation3d/config/config_train.py',
                         help='configure file for medical image setmentation testing')
 
     args = parser.parse_args()
