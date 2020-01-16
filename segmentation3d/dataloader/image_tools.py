@@ -186,9 +186,11 @@ def image_partition_by_fixed_size(image, partition_size):
     :return partition_centers: the list containing center voxel of each partition
     """
     image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
+    image_spacing = (0.5,0.5,0.5)
     image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
-
+    print('image_physical_size',image_physical_size)
     partition_number = [int(np.ceil(image_physical_size[idx] / partition_size[idx])) for idx in range(3)]
+    print('partition_number',partition_number)#ratio for crop in each view
     partition_centers = []
     for idx in range(0, partition_number[0]):
         for idy in range(0, partition_number[1]):
@@ -196,13 +198,13 @@ def image_partition_by_fixed_size(image, partition_size):
                 center = [float(image_origin[0] + partition_size[0] * (0.5 + idx)),
                           float(image_origin[1] + partition_size[1] * (0.5 + idy)),
                           float(image_origin[2] + partition_size[2] * (0.5 + idz))]
-
+                print('center',center)
                 for index in range(3):
                     center_maximum = image_origin[index] + image_physical_size[index] - partition_size[index] / 2.0
                     center[index] = min(center[index], center_maximum)
-
+                print('center',center)
                 partition_centers.append(center)
-
+    print('return partition_centers',partition_centers)
     return partition_centers
 
 

@@ -1,5 +1,4 @@
 import argparse
-import edict
 import importlib
 import os
 import SimpleITK as sitk
@@ -10,7 +9,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 from segmentation3d.utils.file_io import load_config
-from segmentation3d.utils.model_io import get_checkpoint_folder,load_testmodel
+from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, \
   convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size
 
@@ -30,30 +29,31 @@ def load_seg_model(model_folder, gpu_id=0):
   infer_cfg = load_config(os.path.join(model_folder, 'config_infer.py'))
   model.infer_cfg = infer_cfg
 
+  if len(gpu_id) >= 0:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '{},{}'.format(int(gpu_id[0]),int(gpu_id[1]))
+
   # load model state
   chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
-  print('chk_file',chk_file)
   state = torch.load(chk_file)
-
   # load network module
   net_module = importlib.import_module('segmentation3d.network.' + state['net'])
   net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
+  net = nn.parallel.DataParallel(net)
   net.load_state_dict(state['state_dict'])
   net.eval()
 
-  if gpu_id >= 0:
-    net = nn.parallel.DataParallel(net)
+  if len(gpu_id) >= 0:
     net = net.cuda()
-
+    del os.environ['CUDA_VISIBLE_DEVICES']
+    
   model.net = net
   model.spacing = state['spacing']
   model.max_stride = state['max_stride']
   model.interpolation = state['interpolation']
-
   return model
 
 
-def segmentation_voi(image, model, center, size):
+def segmentation_voi(image, model, center, size, use_gpu):
   """ Segment a volume of interest from an image. The volume will be cropped from the image first with the specified
   center and size, and then, the cropped block will be segmented by the segmentation model.
 
@@ -67,19 +67,26 @@ def segmentation_voi(image, model, center, size):
   # the cropping size should be multiple of the max_stride
   max_stride = model['max_stride']
   cropping_size = [int(np.round(size[idx] / model['spacing'][idx])) for idx in range(3)]
+  print('cropping_size',cropping_size)
   for idx in range(3):
     if cropping_size[idx] % max_stride:
       cropping_size[idx] += max_stride - cropping_size[idx] % max_stride
-
+  print('cropping_size',cropping_size)
   iso_image = crop_image(image, center, cropping_size, model['spacing'], model['interpolation'])
+  #print('after crop iso_image',iso_image.shape)
   iso_image_tensor = convert_image_to_tensor(iso_image).unsqueeze(0)
+  print('iso_image_tensor',iso_image_tensor.shape) 
+  if len(use_gpu) > 0:
+    iso_image_tensor = iso_image_tensor.cuda()
 
   with torch.no_grad():
     probs = model['net'](iso_image_tensor)
-
+  print('probs',probs.shape)
   # return segmentation mask
   _, mask = probs.max(1)
+  print('mask',mask.shape)
   mask = convert_tensor_to_image(mask[0].data, dtype=np.short)
+  #print('mask',mask.max())
   set_image_frame(mask, get_image_frame(iso_image))
 
   # return probability map
@@ -110,16 +117,18 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     model.save_image = save_image
     model.save_prob_index = save_prob_index
     load_model_time = time.time() - begin
-
     begin = time.time()
     # load image
     image = sitk.ReadImage(input_path)
-    image_size, image_spacing = image.GetSize(), image.GetSpacing()
+    #image_size, image_spacing = image.GetSize(), image.GetSpacing()
+    image_size = image.GetSize()
+    image_spacing = (0.5,0.5,0.5)
     read_image_time = time.time() - begin
 
     case_name = os.path.split(input_path)[-1]
-
+    print('case_name',case_name[:-4])
     # set mask and prob
+    case_name = case_name[:-4]
     mask = sitk.Image(image_size, sitk.sitkInt8)
     set_image_frame(mask, get_image_frame(image))
 
@@ -128,19 +137,24 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     if partition_type == 'DISABLE':
       # no partition, use the whole image
       image_voxel_center = [float(image_size[idx] / 2.0) for idx in range(3)]
+      print('image_voxel_center',image_voxel_center)
       image_world_center = image.TransformContinuousIndexToPhysicalPoint(image_voxel_center)
-
+      print('image_world_center',image_world_center)
       image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
-      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size)
+      print('image_physical_size',image_physical_size)
+      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size, gpu_id)
+      #print('after pred mask_voi',mask_voi.shape)
+      #print('after pred prob_voi',prob_voi.shape)
       copy_image(mask_voi, image_world_center, image_physical_size, mask, 'NN')
 
     elif partition_type == 'SIZE':
       # image partition by fixed volume size
       image_partition_size = model['infer_cfg'].general.partition_size
+      print('image_partition_size',image_partition_size)
       image_world_centers = image_partition_by_fixed_size(image, image_partition_size)
 
       for idx, image_world_center in enumerate(image_world_centers):
-        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size)
+        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size, gpu_id )
         copy_image(mask_voi, image_world_center, image_partition_size, mask, 'NN')
 
         print('{:0.2f}%'.format((idx + 1) / len(image_world_centers) * 100))
@@ -172,31 +186,34 @@ def main():
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='/shenlab/lab_stor6/yuezhou/ABUSdata/resize/abus_test.list',#'/home/qinliu/roi.mha',
+                        default = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/image/0002_RLAT.dcm',
+            #default='/shenlab/lab_stor6/qinliu/CT_Dental/data/case_100_ct_patient/org.mha',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/',#'/home/qinliu/projects/segmentation3d/debug/model_0110_2020',
+                        default = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/', 
+            #default='/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0115_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
-                        default='/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/results/',#'/home/qinliu/results',
+                        default='/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/results_liu/',  
+            #default='/home/qinliu19/results',
                         help='output folder for segmentation')
     parser.add_argument('-n', '--seg_name',
                         default='result.mha',
                         help='the name of the segmentation result to be saved')
     parser.add_argument('-g', '--gpu_id',
-                        default='1',
+                        default=[4,6],#'6',
                         help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image',
-                        help='whether to save original image', action="store_true")
+                        default=True,            
+            help='whether to save original image', action="store_true")
     parser.add_argument('--save_prob_index',
-                        default='-1',
+                        default='1',
                         help='whether to save single prob map')
     args = parser.parse_args()
 
-    segmentation(args.input, args.model, args.output, args.seg_name, int(args.gpu_id), args.save_image,
+    segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image,
                  args.save_prob_index)
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVISE'] = '1,6'
     main()
