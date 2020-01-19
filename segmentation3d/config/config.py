@@ -16,13 +16,14 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # the output of training models and logs
 #__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
-__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/baseline/maskresize/'
+__C.general.save_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/seg_baseline//'
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 2
-
+# the gpu number
+__C.general.gpu = '1,2'
 # random seed used in training (debugging purpose)
 __C.general.seed = 0
 
@@ -40,7 +41,7 @@ __C.dataset.num_classes = 2#3
 __C.dataset.spacing = [0.5, 0.5, 0.5]#[0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [318,80,290]
+__C.dataset.crop_size = [128,64,128]
 #__C.dataset.crop_size = [256,80,256]#[128, 32, 128]
 #__C.dataset.crop_size = [256,64,256]#[128,32,128]
 # the default padding value list
@@ -53,7 +54,7 @@ __C.dataset.default_values = [0]
 __C.dataset.sampling_method = 'MASK'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [0, 0, 0]#[5,5,5]for train
+__C.dataset.random_translation = [0,0,0]#[5,5,5]for train
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -103,7 +104,7 @@ __C.net.name = 'vnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 1500#101
+__C.train.epochs = 1000#101
 
 # the number of samples in a batch
 __C.train.batchsize = 6
@@ -119,8 +120,14 @@ __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
 __C.train.save_epochs = 100
-
-
+# show result in tensorboard
+__C.train.show_result = 10
+# save train process
+__C.train.save_result = 300
+# input image crop method
+__C.train.split = 'train_image_random'
+# save train result in file
+__C.train.save_file = 'train_process_result'
 ##################################
 # testing parameters
 ##################################
@@ -128,20 +135,24 @@ __C.train.save_epochs = 100
 __C.test = {}
 
 # the number of training epochs
-__C.test.test_epoch = 6100#6100#6300(gl)#7200(hy)
-
+__C.test.test_epoch = 100
 # the number of samples in a batch
 __C.test.batch_size = 1
 
 # the number of threads for IO
 __C.test.num_threads = 0
-
+# test training ot testing dataset
+__C.test.fold = 'train'
 # base dir for test
-__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/test_resize.txt'
+__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/'+__C.test.fold+'_resize.txt'
+#__C.test.imseg_list = '/shenlab/lab_stor6/yuezhou/ABUSdata/resize/train_resize.txt'
 # save test result
 __C.test.save = True
 # save file name
-__C.test.save_filename = 'testresult_orisize_maskcrop_th0.3'
+__C.test.save_filename = __C.test.fold+'result'+str(__C.test.test_epoch)
+# test model pth
+#__C.test.model_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/seg_baseline/tumor_center_crop/'
+__C.test.model_dir = '/shenlab/lab_stor6/yuezhou/ABUSdata/seg_baseline/tumor_random_random_crop_flip_normaliza/'
 ###################################
 # debug parameters
 ###################################

@@ -4,7 +4,7 @@ import SimpleITK as sitk
 from torch.utils.data import Dataset
 
 from segmentation3d.utils.file_io import readlines
-from segmentation3d.dataloader.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
+from segmentation3d.dataloader.image_tools import select_tumor_center, select_random_voxels_in_multi_class_mask, crop_image, \
     convert_image_to_tensor, get_image_frame
 
 
@@ -90,9 +90,9 @@ class SegmentationDataset(Dataset):
         origin  = image.GetOrigin()
         im_size_mm = [image.GetSize()[idx] * image.GetSpacing()[idx] for idx in range(3)]
         im_size_mm[2] = image.GetSize()[2]*0.5#for ABUS data
-        #print('im_size_mm',im_size_mm)
+        print('im_size_mm',im_size_mm)
         crop_size_mm = self.crop_size * self.spacing
-        #print('crop_size_mm',crop_size_mm)
+        print('crop_size_mm',crop_size_mm)
         sp = np.array(origin, dtype=np.double)#0,0,0
         for i in range(3):
             if im_size_mm[i] > crop_size_mm[i]:
@@ -112,6 +112,7 @@ class SegmentationDataset(Dataset):
         case_name = os.path.basename(os.path.dirname(image_paths[0]))
         case_name += '_' + os.path.basename(image_paths[0])
         case_name_ = case_name[6:-4]
+        print('case_name_',case_name_)
         # image IO
         images = []
         for image_path in image_paths:
@@ -125,12 +126,14 @@ class SegmentationDataset(Dataset):
             center = self.global_sample(seg)
 
         elif self.sampling_method == 'MASK':
-            centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
+            #centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
+            centers = select_tumor_center(seg,1,np.random.randint(1,self.num_classes))
             if len(centers) > 0:
-                center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(3)])
+                center = np.array(centers[0])/2
+                #center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(3)])
             else:  # if no segmentation
                 center = self.global_sample(seg)
-
+            print('center',center)
         elif self.sampling_method == 'HYBRID': # default
             if index % 2:
                 center = self.global_sample(seg)
@@ -144,7 +147,7 @@ class SegmentationDataset(Dataset):
         else:
             raise ValueError('Only GLOBAL, MASK and HYBRID are supported as sampling methods')
         # random translation
-        center += np.random.uniform(-self.random_translation, self.random_translation, size=[3])
+        #center += np.random.uniform(-self.random_translation, self.random_translation, size=[3])
         # sample a crop from image and normalize it
         for idx in range(len(images)):
             images[idx] = crop_image(images[idx], center, self.crop_size, self.spacing, self.interpolation)
@@ -153,7 +156,6 @@ class SegmentationDataset(Dataset):
                 self.crop_nomalizers[idx](images[idx])
 
         seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
-
         # image frame
         frame = get_image_frame(seg)
 
@@ -161,7 +163,7 @@ class SegmentationDataset(Dataset):
         im = convert_image_to_tensor(images)
         seg = convert_image_to_tensor(seg)
 
-        return im, seg, frame, case_name
+        return im, seg, frame, case_name,center
 class SegmentationTestDataset(Dataset):
     def __init__(self,listpth):
         if listpth.endswith('txt'):
