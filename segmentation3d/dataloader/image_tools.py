@@ -2,7 +2,7 @@ import numpy as np
 import os
 import SimpleITK as sitk
 import torch
-
+import nibabel as nib
 
 type_conversion_from_numpy_to_sitk = {
     np.int8:     sitk.sitkInt8,
@@ -57,7 +57,22 @@ def set_image_frame(image, frame):
     image.SetOrigin(origin)
     image.SetDirection(direction)
 
-
+def save_train_result(idxs,crops,masks,outputs,file_names,out_folder):
+    images = crops.cpu().detach().numpy()
+    labels = masks.cpu().detach().numpy()
+    outputs = outputs.cpu().detach().numpy()
+    if not os.path.isdir(out_folder):
+        os.makedirs(out_folder)
+    for i in range(idxs):
+        case_out_folder = os.path.join(out_folder, file_names[i])
+        if not os.path.isdir(case_out_folder):
+            os.makedirs(case_out_folder)
+        image = images[i,0,:,:,:]
+        label = labels[i,:,:,:]
+        output = outputs[i,1,:,:,:]
+        nib.save(nib.Nifti1Image(image.astype(np.float32),np.eye(4)),case_out_folder+'/'+'img.nii.gz')
+        nib.save(nib.Nifti1Image(label.astype(np.float32),np.eye(4)),case_out_folder+'/'+'label.nii.gz')
+        nib.save(nib.Nifti1Image(output.astype(np.float32),np.eye(4)),case_out_folder+'/'+'pred.nii.gz')
 def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, out_folder):
     """
     Save intermediate results to training folder
@@ -112,7 +127,6 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     :return a cropped patch
     """
     assert isinstance(image, sitk.Image)
-
     cropping_center = [float(cropping_center[idx]) for idx in range(3)]
     cropping_size = [int(cropping_size[idx]) for idx in range(3)]
     cropping_spacing = [float(cropping_spacing[idx]) for idx in range(3)]
@@ -220,16 +234,41 @@ def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label)
 
     mask_npy = sitk.GetArrayFromImage(mask)
     valid_voxels = np.argwhere(mask_npy == selected_label)
-
+    #print('number of valid_voxels',len(valid_voxels))
     selected_voxels = []
     while len(valid_voxels) > 0 and len(selected_voxels) < num_selected:
         selected_index = np.random.randint(0, len(valid_voxels))
+        print('selected_index',selected_index)
         selected_voxel = valid_voxels[selected_index]
-        selected_voxels.append(selected_voxel[::-1])
-
+        print('selected_voxel',selected_voxel)
+        print('selected_voxel[::-1]',selected_voxel[::-1])
+        #selected_voxels.append(selected_voxel[::-1])#why
+        selected_voxels.append(selected_voxel)
     return selected_voxels
+def select_tumor_center(mask,num_selected,selected_label):
+    assert isinstance(mask,sitk.Image)
 
+    mask_npy = sitk.GetArrayFromImage(mask)
+    valid_voxels = np.argwhere(mask_npy == selected_label)
 
+    centers = []
+    for i in range(num_selected):
+        a = []
+        for ai in range(mask_npy.shape[0]):
+            if mask_npy[ai,:,:].max()>0:
+                a.append(ai)
+        c = []
+        for ci in range(mask_npy.shape[1]):
+            if mask_npy[:,ci,:].max()>0:
+                c.append(ci)
+        s = []
+        for si in range(mask_npy.shape[2]):
+            if mask_npy[:,:,si].max()>0:
+                s.append(si)
+        center = [int((a[-1]-a[0]+1)/2+a[0]),int((c[-1]-c[0])/2+c[0]),int((s[-1]-s[0]+1)/2+s[0])][::-1]
+        centers.append(center)
+        print('center',center)
+    return centers
 def convert_image_to_tensor(image):
     """
     Convert an SimpleITK image object to float tensor
