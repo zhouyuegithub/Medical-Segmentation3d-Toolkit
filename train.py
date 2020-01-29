@@ -14,7 +14,7 @@ from torchvision.utils import make_grid
 from tensorboardX import SummaryWriter
 from torchvision import transforms
 
-from segmentation3d.dataloader.abus import ABUS, ToTensor, TumorCenterCrop, RandomRotFlip
+from segmentation3d.dataloader.abus import ABUS, ToTensor, TumorCenterCrop, RandomRotFlip,RandomResize
 from segmentation3d.dataloader.dataset import SegmentationDataset
 from segmentation3d.dataloader.sampler import EpochConcateSampler
 from segmentation3d.utils.file_io import load_config, setup_logger
@@ -59,11 +59,13 @@ def train(config_file):
     #            random_translation=cfg.dataset.random_translation,
     #            interpolation=cfg.dataset.interpolation,
     #            crop_normalizers=cfg.dataset.crop_normalizers)
-    dataset = ABUS(base_dir=cfg.general.imseg_list,transform=transforms.Compose([TumorCenterCrop(cfg.dataset.crop_size,split = cfg.train.split),RandomRotFlip(),ToTensor()]))
+    if cfg.general.roi == True:
+        dataset = ABUS(base_dir=cfg.general.imseg_list,transform = transforms.Compose([RandomResize(cfg.dataset.crop_size,probability = 0.5,nopad = True),RandomRotFlip(),ToTensor()]),roiflag = 'ori')
     sampler = EpochConcateSampler(dataset, cfg.train.epochs)
     #print('total index for training',len(sampler))
     data_loader = DataLoader(dataset, sampler=sampler, batch_size=cfg.train.batchsize,
                              num_workers=cfg.train.num_threads, pin_memory=True)
+    print('training data len',len(data_loader))
     net_module = importlib.import_module('segmentation3d.network.' + cfg.net.name)
     net = net_module.SegmentationNet(1, cfg.dataset.num_classes)#1,2
     max_stride = net.max_stride()#return 16
@@ -104,7 +106,7 @@ def train(config_file):
         print('training ', sample['name'])
         crops = sample['image']
         masks = sample['label']
-        center = sample['center']
+        #center = sample['center']
         if cfg.general.num_gpus > 0:
             crops, masks = crops.cuda(), masks.cuda()
 
@@ -126,7 +128,8 @@ def train(config_file):
         #if epoch_idx != 0 and (epoch_idx % cfg.train.save_result == 0):
         #    save_train_result(cfg.train.batchsize,crops,masks,outputs,sample['name'],cfg.general.save_dir+cfg.train.save_file+'/')
         if (batch_idx+1) % cfg.train.show_result == 0:
-            begin = int(center[0][1]-5)-np.array(cfg.dataset.crop_size).max()
+            
+            begin = 20#int(center[0][1]-5)#-np.array(cfg.dataset.crop_size).max()
             end = begin+10
             r = 1
             image_num = int((end-begin-1)/r)

@@ -91,7 +91,7 @@ def test(config_file):
     if cfg.general.num_gpus > 0:
         torch.cuda.manual_seed(cfg.general.seed)
     
-    dataset = ABUS(base_dir=cfg.test.imseg_list,transform=transforms.Compose([TumorCenterCrop(cfg.dataset.crop_size,split = 'test'),ToTensor()]))
+    dataset = ABUS(base_dir=cfg.test.imseg_list,transform=transforms.Compose([ToTensor()]))
     testloader = DataLoader(dataset,batch_size=cfg.test.batch_size, shuffle=False, num_workers=cfg.test.num_threads,pin_memory=True)
     print('dataset length',len(testloader))
     net_model = importlib.import_module('segmentation3d.network.'+cfg.net.name)
